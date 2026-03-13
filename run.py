@@ -1,180 +1,175 @@
 #!/usr/bin/env python3
 """
-🚀 N8N Workflows Search Engine Launcher
-Start the advanced search system with optimized performance.
+🚀 Lanceur du Moteur de Recherche N8N Workflows
+Démarre le système de recherche avancé avec des performances optimisées.
 """
-
 import sys
 import os
 import argparse
 
 
 def print_banner():
-    """Print application banner."""
-    print("🚀 n8n-workflows Advanced Search Engine")
-    print("=" * 50)
+        """Affiche la bannière de l'application."""
+        print("🚀 n8n-workflows Moteur de Recherche Avancé")
+        print("=" * 50)
 
 
 def check_requirements() -> bool:
-    """Check if required dependencies are installed."""
-    missing_deps = []
-
-    try:
-        import sqlite3
-    except ImportError:
+        """Vérifie que les dépendances requises sont installées."""
+        missing_deps = []
+        try:
+                    import sqlite3
+except ImportError:
         missing_deps.append("sqlite3")
-
     try:
-        import uvicorn
-    except ImportError:
-        missing_deps.append("uvicorn")
-
-    try:
-        import fastapi
-    except ImportError:
-        missing_deps.append("fastapi")
-
-    if missing_deps:
-        print(f"❌ Missing dependencies: {', '.join(missing_deps)}")
-        print("💡 Install with: pip install -r requirements.txt")
-        return False
-
-    print("✅ Dependencies verified")
+                import uvicorn
+except ImportError:
+            missing_deps.append("uvicorn")
+        try:
+                    import fastapi
+except ImportError:
+            missing_deps.append("fastapi")
+        if missing_deps:
+                    print(f"❌ Dépendances manquantes : {', '.join(missing_deps)}")
+                    print("💡 Installez-les avec : pip install -r requirements.txt")
+                    return False
+                print("✅ Dépendances vérifiées")
     return True
 
 
 def setup_directories():
-    """Create necessary directories."""
-    directories = ["database", "static", "workflows"]
-
-    for directory in directories:
-        os.makedirs(directory, exist_ok=True)
-
-    print("✅ Directories verified")
+        """Crée les répertoires nécessaires."""
+        directories = ["database", "static", "workflows"]
+        for directory in directories:
+                    os.makedirs(directory, exist_ok=True)
+                print("✅ Répertoires vérifiés")
 
 
 def setup_database(force_reindex: bool = False, skip_index: bool = False) -> str:
-    """Setup and initialize the database."""
+        """Configure et initialise la base de données."""
     from workflow_db import WorkflowDatabase
 
     db_path = "database/workflows.db"
-
-    print(f"🔄 Setting up database: {db_path}")
+    print(f"🔄 Configuration de la base de données : {db_path}")
     db = WorkflowDatabase(db_path)
 
-    # Skip indexing in CI mode or if explicitly requested
+    # Ignorer l'indexation en mode CI ou si explicitement demandé
     if skip_index:
-        print("⏭️  Skipping workflow indexing (CI mode)")
-        stats = db.get_stats()
-        print(f"✅ Database ready: {stats['total']} workflows")
-        return db_path
+                print("⏭️ Indexation des workflows ignorée (mode CI)")
+                stats = db.get_stats()
+                print(f"✅ Base de données prête : {stats['total']} workflows")
+                return db_path
 
-    # Check if database has data or force reindex
+    # Vérifier si la base de données contient des données ou forcer la réindexation
     stats = db.get_stats()
     if stats["total"] == 0 or force_reindex:
-        print("📚 Indexing workflows...")
-        index_stats = db.index_all_workflows(force_reindex=True)
-        print(f"✅ Indexed {index_stats['processed']} workflows")
+                print("📚 Indexation des workflows...")
+                index_stats = db.index_all_workflows(force_reindex=True)
+                print(f"✅ {index_stats['processed']} workflows indexés")
 
-        # Show final stats
-        final_stats = db.get_stats()
-        print(f"📊 Database contains {final_stats['total']} workflows")
-    else:
-        print(f"✅ Database ready: {stats['total']} workflows")
-
+    # Afficher les statistiques finales
+    final_stats = db.get_stats()
+    print(f"📊 La base de données contient {final_stats['total']} workflows")
     return db_path
 
 
 def start_server(host: str = "127.0.0.1", port: int = 8000, reload: bool = False):
-    """Start the FastAPI server."""
-    print(f"🌐 Starting server at http://{host}:{port}")
-    print(f"📊 API Documentation: http://{host}:{port}/docs")
-    print(f"🔍 Workflow Search: http://{host}:{port}/api/workflows")
+        """Démarre le serveur FastAPI."""
+    print(f"🌐 Démarrage du serveur sur http://{host}:{port}")
+    print(f"📊 Documentation API : http://{host}:{port}/docs")
+    print(f"🔍 Recherche de workflows : http://{host}:{port}/api/workflows")
     print()
-    print("Press Ctrl+C to stop the server")
+    print("Appuyez sur Ctrl+C pour arrêter le serveur")
     print("-" * 50)
 
-    # Configure database path
+    # Configurer le chemin de la base de données
     os.environ["WORKFLOW_DB_PATH"] = "database/workflows.db"
 
-    # Start uvicorn with better configuration
+    # Démarrer uvicorn avec une meilleure configuration
     import uvicorn
 
     uvicorn.run(
-        "api_server:app",
-        host=host,
-        port=port,
-        reload=reload,
-        log_level="info",
-        access_log=False,  # Reduce log noise
+                "api_server:app",
+                host=host,
+                port=port,
+                reload=reload,
+                log_level="info",
+                access_log=False,  # Réduire le bruit dans les logs
     )
 
 
 def main():
-    """Main entry point with command line arguments."""
+        """Point d'entrée principal avec arguments en ligne de commande."""
     sys.stdout.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(
-        description="N8N Workflows Search Engine",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  python run.py                    # Start with default settings
-  python run.py --port 3000        # Start on port 3000
-  python run.py --host 0.0.0.0     # Accept external connections
-  python run.py --reindex          # Force database reindexing
-  python run.py --dev              # Development mode with auto-reload
-        """,
-    )
-
-    parser.add_argument(
-        "--host", default="127.0.0.1", help="Host to bind to (default: 127.0.0.1)"
+                description="Moteur de Recherche N8N Workflows",
+                formatter_class=argparse.RawDescriptionHelpFormatter,
+                epilog="""
+                Exemples :
+                  python run.py                  # Démarrage avec les paramètres par défaut
+                    python run.py --port 3000      # Démarrage sur le port 3000
+                      python run.py --host 0.0.0.0   # Accepter les connexions externes
+                        python run.py --reindex        # Forcer la réindexation de la base de données
+                          python run.py --dev            # Mode développement avec rechargement auto
+                                  """,
     )
     parser.add_argument(
-        "--port", type=int, default=8000, help="Port to bind to (default: 8000)"
+                "--host",
+                default="127.0.0.1",
+                help="Hôte sur lequel se connecter (par défaut : 127.0.0.1)",
     )
     parser.add_argument(
-        "--reindex", action="store_true", help="Force database reindexing"
+                "--port",
+                type=int,
+                default=8000,
+                help="Port sur lequel se connecter (par défaut : 8000)",
     )
     parser.add_argument(
-        "--dev", action="store_true", help="Development mode with auto-reload"
+                "--reindex",
+                action="store_true",
+                help="Forcer la réindexation de la base de données",
     )
     parser.add_argument(
-        "--skip-index",
-        action="store_true",
-        help="Skip workflow indexing (useful for CI/testing)",
+                "--dev",
+                action="store_true",
+                help="Mode développement avec rechargement automatique",
     )
-
+    parser.add_argument(
+                "--skip-index",
+                action="store_true",
+                help="Ignorer l'indexation des workflows (utile pour CI/tests)",
+    )
     args = parser.parse_args()
 
-    # Also check environment variable for CI mode
+    # Vérifier également la variable d'environnement pour le mode CI
     ci_mode = os.environ.get("CI", "").lower() in ("true", "1", "yes")
     skip_index = args.skip_index or ci_mode
 
     print_banner()
 
-    # Check dependencies
+    # Vérifier les dépendances
     if not check_requirements():
-        sys.exit(1)
+                sys.exit(1)
 
-    # Setup directories
+    # Configurer les répertoires
     setup_directories()
 
-    # Setup database
+    # Configurer la base de données
     try:
-        setup_database(force_reindex=args.reindex, skip_index=skip_index)
-    except Exception as e:
-        print(f"❌ Database setup error: {e}")
-        sys.exit(1)
+                setup_database(force_reindex=args.reindex, skip_index=skip_index)
+except Exception as e:
+            print(f"❌ Erreur de configuration de la base de données : {e}")
+            sys.exit(1)
 
-    # Start server
-    try:
-        start_server(host=args.host, port=args.port, reload=args.dev)
-    except KeyboardInterrupt:
-        print("\n👋 Server stopped!")
-    except Exception as e:
-        print(f"❌ Server error: {e}")
-        sys.exit(1)
+    # Démarrer le serveur
+        try:
+                    start_server(host=args.host, port=args.port, reload=args.dev)
+except KeyboardInterrupt:
+            print("\n👋 Serveur arrêté !")
+except Exception as e:
+            print(f"❌ Erreur du serveur : {e}")
+            sys.exit(1)
 
 
 if __name__ == "__main__":
-    main()
+        main()
